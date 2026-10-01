@@ -27,11 +27,13 @@ var ids = [
   "gameLog", "turnLabel", "handHint", "handInvestment", "betSlider", "betAmountLabel", "foldButton", "callButton", "raiseButton",
   "soundButton", "toast", "statsButton", "statsModal", "statsClose", "statHands", "statVpip", "statPfr",
   "statShowdown", "statNet", "statNetBar", "positionStats",
-  "tournamentHud", "hudLevel", "hudNextLevel", "hudAverage", "hudPressure", "hudProgress"
+  "tournamentHud", "hudLevel", "hudNextLevel", "hudAverage", "hudPressure", "hudProgress",
+  "betInput"
 ];
 var elements = {};
 ids.forEach(function (id) { elements[id] = makeElement(id); });
 
+var allInButton = makeElement("allin"); allInButton.dataset = { allin: "1" };
 var quickButtons = ["0.33", "0.5", "0.75", "1"].map(function (pot) {
   var el = makeElement("quick"); el.dataset.pot = pot; return el;
 });
@@ -41,6 +43,7 @@ var document = {
   hidden: false,
   getElementById: function (id) { return elements[id]; },
   querySelectorAll: function () { return quickButtons; },
+  querySelector: function (selector) { return selector === "[data-allin]" ? allInButton : null; },
   createElement: function (tag) { return makeElement(tag); },
   addEventListener: function () {}
 };

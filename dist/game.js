@@ -115,6 +115,53 @@
   });
 
   els.betSlider.addEventListener("input", () => els.betAmountLabel.textContent = formatChips(Number(els.betSlider.value)));
+
+  // 点击下注额数字可精确输入，避免在触屏上拖动滑块对准小额。
+  const betInput = els.betInput;
+  function openBetInput() {
+    if (!betInput || els.betSlider.disabled) return;
+    betInput.hidden = false;
+    betInput.value = String(Number(els.betSlider.value) || 0);
+    betInput.focus();
+    betInput.select?.();
+  }
+  function closeBetInput(commit) {
+    if (!betInput || betInput.hidden) return;
+    if (commit) {
+      const min = Number(els.betSlider.min);
+      const max = Number(els.betSlider.max);
+      const raw = Number(betInput.value);
+      if (Number.isFinite(raw)) {
+        const target = clamp(Math.round(raw), min, max);
+        els.betSlider.value = target;
+        els.betAmountLabel.textContent = formatChips(target);
+      }
+    }
+    betInput.hidden = true;
+  }
+  if (betInput) {
+    els.betAmountLabel.addEventListener("click", openBetInput);
+    els.betAmountLabel.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openBetInput(); }
+    });
+    betInput.addEventListener("blur", () => closeBetInput(true));
+    betInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); closeBetInput(true); }
+      else if (event.key === "Escape") { event.preventDefault(); closeBetInput(false); }
+    });
+  }
+
+  // 全下：把滑杆推到上限。
+  if (els.allInBet) {
+    els.allInBet.addEventListener("click", () => {
+      if (!S.game) return;
+      const hero = S.game.players[0];
+      const target = clamp(hero.bet + hero.chips, Number(els.betSlider.min), Number(els.betSlider.max));
+      els.betSlider.value = target;
+      els.betAmountLabel.textContent = formatChips(target);
+    });
+  }
+
   els.quickBets.forEach((button) => button.addEventListener("click", () => {
     if (!S.game) return;
     const hero = S.game.players[0];

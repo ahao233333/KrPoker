@@ -55,13 +55,15 @@
               <small id="handInvestment">本手已投入 0</small>
             </div>
             <div class="bet-control" id="betControl">
-              <div class="bet-line"><span>下注额</span><strong id="betAmountLabel">0</strong></div>
+              <div class="bet-line"><span>下注额</span><strong id="betAmountLabel" role="button" tabindex="0" aria-label="精确输入下注额" title="点击精确输入">0</strong></div>
               <input id="betSlider" type="range" min="0" max="100" value="0" disabled aria-label="下注金额" />
+              <input id="betInput" class="bet-input" type="number" inputmode="numeric" min="0" step="1" hidden aria-label="输入下注额" />
               <div class="quick-bets">
                 <button data-pot="0.33" disabled>⅓ 池</button>
                 <button data-pot="0.5" disabled>½ 池</button>
                 <button data-pot="0.75" disabled>¾ 池</button>
                 <button data-pot="1" disabled>满池</button>
+                <button data-allin="1" disabled>全下</button>
               </div>
             </div>
             <div class="action-buttons">

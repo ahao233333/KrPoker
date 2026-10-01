@@ -120,9 +120,42 @@ h1, h2, p { margin: 0; }
 .bet-line strong { color: var(--ink); }
 input[type="range"] { width: 100%; height: 3px; appearance: none; background: #26352e; border-radius: 2px; accent-color: var(--gold); }
 input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 0 3px rgba(217,173,103,.15); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--gold-bright); }
+
+/* 触屏：滑块手柄与轨道都要够大，否则很难精确拖动下注额 */
+@media (hover: none), (pointer: coarse) {
+  button { -webkit-tap-highlight-color: transparent; }
+  /* 长按不选中文字、不弹放大镜 */
+  .action, .quick-bets button, .ghost-button, .back-button, .seat, .bet-line { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+  /* 触控没有 hover，改用 :active 给出即时反馈 */
+  .action:not(:disabled):active { transform: scale(.97); filter: brightness(1.15); }
+  .action.primary:not(:disabled):active { filter: brightness(1.12); }
+  .quick-bets button:not(:disabled):active { color: var(--gold-bright); border-color: rgba(217,173,103,.5); background: rgba(217,173,103,.08); }
+  .ghost-button:active, .back-button:active { border-color: rgba(217,173,103,.45); background: rgba(255,255,255,.07); }
+
+  /* 滑块：扩大触摸区域并加粗拇指 */
+  input[type="range"] { height: 22px; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; background: #26352e; }
+  input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -9.5px; box-shadow: 0 0 0 5px rgba(217,173,103,.16); }
+  input[type="range"]::-moz-range-track { height: 5px; border-radius: 3px; background: #26352e; }
+  input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+
+  /* 快捷下注按钮要有足够大的点击面 */
+  .quick-bets { gap: 7px; margin-top: 11px; }
+  .quick-bets button { min-height: 34px; padding: 7px 2px; font-size: .64rem; }
+}
 .quick-bets { display: flex; gap: 5px; margin-top: 9px; }
 .quick-bets button { flex: 1; border: 1px solid var(--line); border-radius: 5px; background: transparent; padding: 4px 2px; color: var(--faint); font-size: .58rem; cursor: pointer; }
 .quick-bets button:not(:disabled):hover { color: var(--gold); border-color: rgba(217,173,103,.35); }
+
+/* 精确输入：点击下注额数字后就地变成输入框，避免在手机上拖滑块对准小额 */
+.bet-line strong { cursor: pointer; border-bottom: 1px dashed rgba(217,173,103,.35); }
+.bet-line strong:focus-visible { outline: 2px solid rgba(217,173,103,.5); outline-offset: 2px; }
+.bet-input { width: 100%; margin-top: 8px; padding: 9px 11px; border: 1px solid rgba(217,173,103,.45); border-radius: 7px; background: #0f1a15; color: var(--ink); font: 600 .86rem Georgia, serif; font-variant-numeric: tabular-nums; outline: none; }
+.bet-input[hidden] { display: none; }
+.bet-input::-webkit-outer-spin-button, .bet-input::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.bet-input { appearance: textfield; -moz-appearance: textfield; }
 .action-buttons { display: grid; grid-template-columns: 1fr 1.2fr 1.35fr; gap: 8px; }
 .action { min-height: 48px; border-radius: 9px; font-size: .78rem; font-weight: 700; cursor: pointer; }
 .action:disabled, .quick-bets button:disabled { opacity: .32; cursor: not-allowed; }
@@ -233,8 +266,11 @@ input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; heigh
   .seat { width: 88px; }
   .seat-box { padding: 6px 3px; }
   .seat-cards .card { width: 27px; height: 39px; }
-  .action-buttons { grid-template-columns: 1fr 1fr 1.1fr; }
-  .action { min-height: 44px; font-size: .7rem; }
+  .action-buttons { grid-template-columns: 1fr 1fr 1.1fr; gap: 7px; }
+  /* 手机上操作按钮是主要交互，保证足够的点击高度 */
+  .action { min-height: 52px; font-size: .74rem; }
+  .quick-bets button { min-height: 36px; }
+  .ghost-button { min-height: 38px; }
   .stats-card { padding: 20px 16px; max-height: 92vh; overflow: auto; }
 }
 @media (max-width: 340px) {
@@ -309,7 +345,10 @@ input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; heigh
   .topbar { height: calc(38px + env(safe-area-inset-top)); }
   .game-layout { height: calc(100vh - 38px - env(safe-area-inset-top)); height: calc(100dvh - 38px - env(safe-area-inset-top)); }
   .action-dock { min-height: 54px; padding-block: 3px; }
-  .action { min-height: 38px; }
+  /* 横屏纵向空间有限，但仍保留可点按的最小高度 */
+  .action { min-height: 42px; }
+  .quick-bets { margin-top: 5px; }
+  .quick-bets button { min-height: 26px; padding-block: 3px; }
 }
 @media (max-width: 560px) and (orientation: portrait) {
   .rotate-hint { display: block; }

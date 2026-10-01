@@ -383,6 +383,9 @@
     els.betSlider.value = minTarget;
     els.betAmountLabel.textContent = formatChips(minTarget);
     els.quickBets.forEach((b) => b.disabled = !canRaise);
+    if (els.allInBet) els.allInBet.disabled = !canRaise;
+    // 轮次切换时收起精确输入框，避免残留到下一次行动。
+    if (els.betInput && !els.betInput.hidden) els.betInput.hidden = true;
   }
 
   function disableActions() {
@@ -391,6 +394,8 @@
     els.raise.disabled = true;
     els.betSlider.disabled = true;
     els.quickBets.forEach((b) => b.disabled = true);
+    if (els.allInBet) els.allInBet.disabled = true;
+    if (els.betInput) els.betInput.hidden = true;
     delete els.raise.dataset.mode;
   }
 
