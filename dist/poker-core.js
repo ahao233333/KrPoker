@@ -214,6 +214,39 @@
     return equity / trials;
   }
 
+  // --- 第二版：筹码深度 / SPR ---
+
+  // 以“大盲”为单位的有效筹码深度。用于区分短码、标准码和深码策略。
+  function effectiveStackBb(stacks, bigBlind) {
+    var values = (stacks || []).filter(function (value) { return typeof value === "number" && value > 0; });
+    if (!values.length || !bigBlind) return 0;
+    return Math.min.apply(null, values) / bigBlind;
+  }
+
+  // SPR = 有效筹码 / 底池。SPR 越低，顶对类牌力越值得投入全部筹码。
+  function spr(stacks, pot) {
+    var values = (stacks || []).filter(function (value) { return typeof value === "number" && value > 0; });
+    if (!values.length) return 0;
+    return pot > 0 ? Math.min.apply(null, values) / pot : Infinity;
+  }
+
+  // 按大盲深度归档，供策略分支使用。
+  function stackDepthBucket(stacks, bigBlind) {
+    var bb = effectiveStackBb(stacks, bigBlind);
+    if (bb <= 0) return "unknown";
+    if (bb <= 12) return "critical";
+    if (bb <= 25) return "short";
+    if (bb <= 45) return "medium";
+    if (bb <= 90) return "standard";
+    return "deep";
+  }
+
+  // 多人底池需要更紧的价值门槛：每个额外对手都显著降低胜率要求。
+  function multiwayValueThreshold(baseThreshold, opponentCount) {
+    var count = Math.max(0, (opponentCount || 0) - 1);
+    return clamp(baseThreshold + count * .055, .3, .97);
+  }
+
   function calculateSidePots(contributions, foldedIds) {
     var folded = new Set(foldedIds || []);
     var levels = Array.from(new Set(contributions.map(function (item) { return item.amount; }).filter(Boolean))).sort(function (a, b) { return a - b; });
@@ -238,6 +271,8 @@
     startingHandPercentile: startingHandPercentile, startingHandMatrix: STARTING_HAND_MATRIX,
     drawPotential: drawPotential,
     currentStrength: currentStrength, estimateEquity: estimateEquity,
+    effectiveStackBb: effectiveStackBb, spr: spr,
+    stackDepthBucket: stackDepthBucket, multiwayValueThreshold: multiwayValueThreshold,
     calculateSidePots: calculateSidePots
   });
 })(typeof self !== "undefined" ? self : this);
