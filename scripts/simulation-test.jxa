@@ -52,8 +52,10 @@ function setTimeout() { return 1; }
 function clearTimeout() {}
 
 var basePath = "/Users/Apple/develop/poker/dist/";
-eval($.NSString.stringWithContentsOfFileEncodingError(basePath + "poker-core.js", $.NSUTF8StringEncoding, null).js);
-eval($.NSString.stringWithContentsOfFileEncodingError(basePath + "game.js", $.NSUTF8StringEncoding, null).js);
+// 按 index.html 中的顺序加载全部模块。
+["poker-core.js", "poker-state.js", "poker-stats.js", "poker-ui.js", "poker-ai.js", "poker-table.js", "game.js"].forEach(function (file) {
+  eval($.NSString.stringWithContentsOfFileEncodingError(basePath + file, $.NSUTF8StringEncoding, null).js);
+});
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 

@@ -52,12 +52,11 @@ var self = window;
 function setTimeout() { return 1; }
 function clearTimeout() {}
 
-var corePath = "/Users/Apple/develop/poker/dist/poker-core.js";
-var coreSource = $.NSString.stringWithContentsOfFileEncodingError(corePath, $.NSUTF8StringEncoding, null).js;
-eval(coreSource);
-var gamePath = "/Users/Apple/develop/poker/dist/game.js";
-var gameSource = $.NSString.stringWithContentsOfFileEncodingError(gamePath, $.NSUTF8StringEncoding, null).js;
-eval(gameSource);
+// 按 index.html 中的顺序加载全部模块。
+var basePath = "/Users/Apple/develop/poker/dist/";
+["poker-core.js", "poker-state.js", "poker-stats.js", "poker-ui.js", "poker-ai.js", "poker-table.js", "game.js"].forEach(function (file) {
+  eval($.NSString.stringWithContentsOfFileEncodingError(basePath + file, $.NSUTF8StringEncoding, null).js);
+});
 if (typeof elements.startButton.onclick !== "function") throw new Error("Start button is not wired");
 elements.startButton.onclick();
 if (elements.seatLayer.innerHTML.indexOf("seat-box") < 0) throw new Error("Seats did not render");
