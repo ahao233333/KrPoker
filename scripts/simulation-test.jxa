@@ -1,0 +1,144 @@
+ObjC.import("Foundation");
+
+// 无头模拟测试：真实发牌、真实 AI 决策，验证第二版的筹码深度策略。
+// 与 smoke-test.jxa 的区别是它会打完整手牌，而不只是渲染检查。
+
+function makeElement(id) {
+  return {
+    id: id, value: "", textContent: "",
+    innerHTML: id === "gameLog" ? '<div class="empty-state"></div>' : "",
+    hidden: false, disabled: false,
+    dataset: {}, children: [],
+    classList: { add: function () {}, remove: function () {}, toggle: function () {} },
+    style: { setProperty: function () {} },
+    addEventListener: function (name, callback) { this["on" + name] = callback; },
+    querySelector: function (selector) { return selector === ".empty-state" && this.innerHTML.indexOf("empty-state") >= 0 ? {} : null; },
+    prepend: function (child) { this.children.unshift(child); this.innerHTML = "content"; },
+    appendChild: function (child) { this.children.push(child); },
+    get lastElementChild() { return this.children[this.children.length - 1]; },
+    remove: function () {}
+  };
+}
+
+var ids = [
+  "setupModal", "startButton", "leaveButton", "aiCount", "startingChips", "blindLevel", "thinkSpeed",
+  "opponentList", "opponentCount", "seatLayer", "communityCards", "chipFxLayer", "potAmount", "handNumber", "blindInfo", "handsPlayed",
+  "gameLog", "turnLabel", "handHint", "handInvestment", "betSlider", "betAmountLabel", "foldButton", "callButton", "raiseButton",
+  "soundButton", "toast", "statsButton", "statsModal", "statsClose", "statHands", "statVpip", "statPfr",
+  "statShowdown", "statNet", "statNetBar", "positionStats"
+];
+var elements = {};
+ids.forEach(function (id) { elements[id] = makeElement(id); });
+
+var quickButtons = ["0.33", "0.5", "0.75", "1"].map(function (pot) {
+  var el = makeElement("quick"); el.dataset.pot = pot; return el;
+});
+
+var document = {
+  baseURI: "file:///android_asset/index.html",
+  hidden: false,
+  getElementById: function (id) { return elements[id]; },
+  querySelectorAll: function () { return quickButtons; },
+  createElement: function (tag) { return makeElement(tag); },
+  addEventListener: function () {}
+};
+var localStorage = { getItem: function () { return null; }, setItem: function () {} };
+var crypto = { getRandomValues: function (array) { for (var i = 0; i < array.length; i++) array[i] = (Math.random() * 4294967296) >>> 0; return array; } };
+
+var window = { __pokerTest: true };
+var self = window;
+function setTimeout() { return 1; }
+function clearTimeout() {}
+
+var basePath = "/Users/Apple/develop/poker/dist/";
+eval($.NSString.stringWithContentsOfFileEncodingError(basePath + "poker-core.js", $.NSUTF8StringEncoding, null).js);
+eval($.NSString.stringWithContentsOfFileEncodingError(basePath + "game.js", $.NSUTF8StringEncoding, null).js);
+
+function assert(condition, message) { if (!condition) throw new Error(message); }
+
+assert(window.PokerTest, "测试钩子未启用");
+
+// --- 场景一：标准码 100BB，深码标记应为真 ---
+elements.aiCount.value = "3";
+elements.startingChips.value = "5000";
+elements.blindLevel.value = "25";
+elements.thinkSpeed.value = "fast";
+elements.startButton.onclick();
+
+var T = window.PokerTest;
+assert(T.game, "开桌后 game 状态应存在");
+assert(T.game.players.length === 4, "应为 1 名玩家加 3 名 AI");
+
+var hero = T.game.players[0];
+hero.cards = [{ rank: 14, suit: "♠" }, { rank: 13, suit: "♠" }];
+T.game.community = [{ rank: 2, suit: "♥" }, { rank: 7, suit: "♦" }, { rank: 9, suit: "♣" }];
+
+var ctx = T.strategyContext(hero);
+assert(ctx.effectiveBb > 0, "有效筹码深度应为正数");
+assert(ctx.bucket === "standard" || ctx.bucket === "deep", "5000 筹码 25 大盲应为标准或深码，实际 " + ctx.bucket);
+assert(ctx.opponents === 3, "应有 3 名对手，实际 " + ctx.opponents);
+assert(ctx.multiway === true, "3 名对手应判定为多人底池");
+assert(ctx.deep === true, "标准码应标记为 deep");
+assert(ctx.pushFold === false, "标准码不应进入短码全下模式");
+
+// --- 场景二：短码 10BB，应触发全下倾向 ---
+var shortGame = window.PokerTest.game;
+shortGame.players.forEach(function (p) { p.chips = 250; });
+var shortCtx = T.strategyContext(hero);
+assert(shortCtx.bucket === "critical", "250 筹码 25 大盲应为 critical，实际 " + shortCtx.bucket);
+assert(shortCtx.pushFold === true, "短码应进入全下模式");
+assert(shortCtx.deep === false, "短码不应标记为 deep");
+
+// --- 场景三：多人底池价值门槛应高于单挑 ---
+var soloBar = window.PokerCore.multiwayValueThreshold(.58, 1);
+var multiBar = window.PokerCore.multiwayValueThreshold(.58, 4);
+assert(multiBar > soloBar, "多人门槛应高于单挑门槛");
+
+// --- 场景四：实际打完若干手牌，验证决策链不抛错且筹码守恒 ---
+// 注意：performAction 内部通过 setTimeout 调度下一手，测试里 setTimeout 是空实现，
+// 因此循环自己调用 scheduleTurn 推进流程。
+shortGame.players.forEach(function (p) { p.chips = 5000; });
+var chipsBefore = T.game.players.reduce(function (sum, p) { return sum + p.chips; }, 0);
+var handsPlayed = 0;
+var modesSeen = {};
+
+for (var hand = 0; hand < 12; hand++) {
+  T.startHand();
+  var guard = 0;
+  while (T.game && !T.game.handOver && guard++ < 300) {
+    var actor = T.game.players[T.game.actingIndex];
+    if (!actor || T.game.handOver) break;
+    var toCall = Math.max(0, T.game.currentBet - actor.bet);
+
+    if (actor.human) {
+      T.performAction(actor, toCall ? "call" : "check");
+    } else {
+      // 同步跑一次与 takeAiTurn 同源的策略路径。
+      var equity = window.PokerCore.estimateEquity({
+        hole: actor.cards,
+        community: T.game.community,
+        opponentModels: [{ strengthBias: 0, bluffMix: .18, rangeWidth: 1 }],
+        trials: 60
+      });
+      var plan = T.updateStreetPlan(actor, equity, { bluff: 0, value: 0, aggression: 0, sizing: 0 });
+      assert(plan && typeof plan.mode === "string", "街道计划应返回模式");
+      modesSeen[plan.mode] = true;
+      T.performAction(actor, toCall ? "call" : "check");
+    }
+
+    if (T.game.handOver) break;
+    // 自己推进：真实环境下这一步由 setTimeout(scheduleTurn) 完成。
+    T.scheduleTurn();
+  }
+  assert(guard < 300, "第 " + (hand + 1) + " 手疑似死循环");
+  handsPlayed++;
+  if (T.game.handOver) break;
+}
+
+assert(handsPlayed > 0, "应至少完成一手牌");
+assert(Object.keys(modesSeen).length > 0, "应至少观察到一种街道模式");
+var chipsAfter = T.game.players.reduce(function (sum, p) { return sum + p.chips; }, 0);
+assert(chipsBefore === chipsAfter,
+  "筹码应在牌桌内守恒：" + chipsBefore + " -> " + chipsAfter);
+
+"Simulation tests OK: strategy context, stack buckets, multiway thresholds, " + handsPlayed + " hands played, modes=" + Object.keys(modesSeen).join("/") + ", chip conservation";

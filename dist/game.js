@@ -231,8 +231,27 @@
     model.bluffMix = clamp(.08 + observedRaiseRate * .72, .06, .46);
   }
 
-  function isScareCard(card, board) {
-    if (!card) return false;
+  // 汇总当前决策点的筹码深度与人数信息，供策略分支使用。
+  function strategyContext(player) {
+    const core = window.PokerCore;
+    const live = activePlayers().filter((p) => p.id !== player.id);
+    const stacks = [player.chips].concat(live.map((p) => p.chips)).filter((value) => value > 0);
+    const pot = Math.max(potSize(), game.bigBlind);
+    const bucket = core.stackDepthBucket(stacks, game.bigBlind);
+    const opponents = Math.max(1, live.length);
+    return {
+      bucket,
+      opponents,
+      multiway: opponents >= 2,
+      effectiveBb: core.effectiveStackBb(stacks, game.bigBlind),
+      spr: core.spr(stacks, pot),
+      // 短码更倾向于直接全下，深码更倾向于控池。
+      pushFold: bucket === "critical" || bucket === "short",
+      deep: bucket === "standard" || bucket === "deep"
+    };
+  }
+
+  function isScareCard(card, board) {    if (!card) return false;
     const highCard = card.rank >= 12;
     const paired = board.slice(0, -1).some((other) => other.rank === card.rank);
     const sameSuitCount = board.filter((other) => other.suit === card.suit).length;
@@ -274,14 +293,19 @@
     return 0;
   }
 
-  function updateStreetPlan(player, equity, exploit) {
+  function updateStreetPlan(player, equity, exploit, context) {
     if (player.plan && player.plan.street === game.street) return player.plan;
     const previous = player.plan;
     const strength = window.PokerCore.currentStrength(player.cards, game.community);
     const draw = window.PokerCore.drawPotential(player.cards, game.community);
+    const info = context || strategyContext(player);
     let mode = "potControl";
-    const valueThreshold = .72 - exploit.value + positionAdjustment(player);
-    const balancedBluffRate = clamp(player.profile.bluffRate + exploit.bluff, .03, .56) * bluffCandidateScore(player);
+    // 价值门槛随对手数量收紧，多人底池不再用单挑标准做价值下注。
+    const valueThreshold = window.PokerCore.multiwayValueThreshold(.72, info.opponents) - exploit.value + positionAdjustment(player);
+    let balancedBluffRate = clamp(player.profile.bluffRate + exploit.bluff, .03, .56) * bluffCandidateScore(player);
+    // 多人底池诈唬成功率更低，深码也应收敛纯诈唬。
+    if (info.multiway) balancedBluffRate *= .62;
+    if (info.deep) balancedBluffRate *= .88;
     if (strength > .76 || equity > valueThreshold) mode = random() < player.profile.trapRate && game.street !== "river" ? "trap" : "value";
     else if (draw >= .13 && random() < player.profile.aggression) mode = "semiBluff";
     else if (strength < .4 && random() < balancedBluffRate) mode = "bluff";
@@ -445,15 +469,18 @@
     const potOdds = toCall ? toCall / (pot + toCall) : 0;
     const profile = player.profile;
     const exploit = exploitAdjustments(player);
+    const context = strategyContext(player);
     const heroAggression = game.heroStats.raises / Math.max(1, game.heroStats.actions);
     const adaptation = (heroAggression - .28) * profile.adaptiveness * .08;
     const equity = clamp(rawEquity, .01, .99);
     const caution = (profile.tightness - .5) * .14 + adaptation;
     const error = (random() - .5) * profile.mistakeRate * .55;
     const edge = equity - potOdds - caution + error;
-    const plan = updateStreetPlan(player, equity, exploit);
+    const plan = updateStreetPlan(player, equity, exploit, context);
     const bluffing = plan.mode === "bluff" || plan.mode === "semiBluff";
-    const strong = equity > (.58 + caution * .35);
+    // 多人底池需要更强的牌力才值得继续投入。
+    const valueBar = window.PokerCore.multiwayValueThreshold(.58, context.opponents) + caution * .35;
+    const strong = equity > valueBar;
 
     if (toCall > 0 && (plan.mode === "giveUp" || edge < (-.08 - profile.riskTolerance * .1)) && !bluffing) {
       performAction(player, "fold");
@@ -465,11 +492,25 @@
       performAction(player, toCall ? "call" : "check");
       return;
     }
+
+    // 短码：牌力足够时直接全下，而不是反复小额加注留下尴尬的后手筹码。
+    if (context.pushFold && strong && canRaise && player.chips <= pot * 1.35) {
+      const commitChance = clamp(profile.aggression * .82 + (equity - valueBar) * 1.5, .12, .94);
+      if (random() < commitChance) {
+        performAction(player, "raise", player.bet + player.chips);
+        return;
+      }
+    }
+
     const planFactor = plan.mode === "value" ? .94 : plan.mode === "semiBluff" ? .72 : plan.mode === "bluff" ? .58 : .16;
-    const raiseChance = clamp(profile.aggression * (strong ? Math.max(.82, planFactor) : bluffing ? planFactor : .12) + exploit.aggression, .03, .97);
+    let raiseChance = clamp(profile.aggression * (strong ? Math.max(.82, planFactor) : bluffing ? planFactor : .12) + exploit.aggression, .03, .97);
+    // 深码时对大额投入更谨慎，降低纯诈唬的加注频率。
+    if (context.deep && bluffing) raiseChance *= .82;
     if (canRaise && random() < raiseChance) {
       const basePot = Math.max(pot + toCall, game.bigBlind * 2);
-      const sizing = plan.sizing;
+      let sizing = plan.sizing;
+      // SPR 偏低时用更大的尺度，把决策简化成明确的承诺。
+      if (context.spr <= 3) sizing = Math.min(1.35, sizing * 1.25);
       const target = Math.min(player.bet + player.chips, Math.max(game.currentBet + game.minRaise, game.currentBet + Math.round(basePot * sizing)));
       performAction(player, "raise", target);
     } else {
@@ -889,4 +930,23 @@
 
   els.community.innerHTML = [0, 1, 2, 3, 4].map(() => renderCard(null)).join("");
   renderTrainingStats();
+
+  // 测试钩子：暴露内部状态与决策函数，供 headless 模拟使用。
+  // 仅在显式请求时启用，正常运行不读取 __pokerTest。
+  if (typeof window !== "undefined" && window.__pokerTest) {
+    window.PokerTest = {
+      get game() { return game; },
+      get paused() { return paused; },
+      set paused(value) { paused = value; },
+      strategyContext,
+      updateStreetPlan,
+      takeAiTurn,
+      performAction,
+      startHand,
+      scheduleTurn,
+      potSize,
+      activePlayers,
+      openTable
+    };
+  }
 })();
