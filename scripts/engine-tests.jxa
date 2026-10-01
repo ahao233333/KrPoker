@@ -1,0 +1,81 @@
+ObjC.import("Foundation");
+
+var self = this;
+var source = $.NSString.stringWithContentsOfFileEncodingError(
+  "/Users/Apple/develop/poker/dist/poker-core.js",
+  $.NSUTF8StringEncoding,
+  null
+).js;
+eval(source);
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function card(text) {
+  var suit = text.slice(-1);
+  var label = text.slice(0, -1);
+  var values = { A: 14, K: 13, Q: 12, J: 11, T: 10 };
+  return { rank: values[label] || Number(label), suit: suit };
+}
+
+function cards(text) { return text.split(" ").map(card); }
+function category(text) { return PokerCore.evaluateFive(cards(text)).score[0]; }
+
+var categoryCases = [
+  ["A♠ K♠ Q♠ J♠ T♠", 8],
+  ["9♠ 9♥ 9♦ 9♣ A♠", 7],
+  ["K♠ K♥ K♦ 2♣ 2♠", 6],
+  ["A♥ J♥ 8♥ 4♥ 2♥", 5],
+  ["9♠ 8♥ 7♦ 6♣ 5♠", 4],
+  ["Q♠ Q♥ Q♦ 7♣ 2♠", 3],
+  ["J♠ J♥ 4♦ 4♣ A♠", 2],
+  ["T♠ T♥ A♦ 7♣ 2♠", 1],
+  ["A♠ J♥ 8♦ 5♣ 2♠", 0]
+];
+categoryCases.forEach(function (item) { assert(category(item[0]) === item[1], "Wrong category: " + item[0]); });
+
+var wheel = PokerCore.evaluateFive(cards("A♠ 2♥ 3♦ 4♣ 5♠"));
+var sixHigh = PokerCore.evaluateFive(cards("2♠ 3♥ 4♦ 5♣ 6♠"));
+assert(PokerCore.compareScore(sixHigh.score, wheel.score) > 0, "Six-high straight must beat wheel");
+
+var sevenCard = PokerCore.bestHand(cards("A♠ A♥ A♦ K♣ K♠ 2♥ 3♦"));
+assert(sevenCard.score[0] === 6, "Seven-card evaluator must find a full house");
+
+var deck = PokerCore.createDeck();
+assert(deck.length === 52, "Deck must contain 52 cards");
+assert(new Set(deck.map(PokerCore.cardKey)).size === 52, "Deck cards must be unique");
+assert(PokerCore.startingHandMatrix.length === 169, "Starting-hand matrix must contain 169 classes");
+assert(new Set(PokerCore.startingHandMatrix.map(function (entry) { return entry.key; })).size === 169, "Starting-hand matrix classes must be unique");
+assert(PokerCore.startingHandClass(cards("A♠ K♠")) === "AKs", "Suited starting-hand class is incorrect");
+assert(PokerCore.startingHandClass(cards("Q♠ Q♥")) === "QQ", "Pair starting-hand class is incorrect");
+assert(PokerCore.startingHandPercentile(cards("A♠ A♥")) < PokerCore.startingHandPercentile(cards("7♠ 2♥")), "AA must rank above 72o");
+
+var pots = PokerCore.calculateSidePots([
+  { id: "a", amount: 100 }, { id: "b", amount: 300 },
+  { id: "c", amount: 500 }, { id: "d", amount: 500 }
+], ["c"]);
+assert(pots.length === 3, "Expected main pot and two side pots");
+assert(pots[0].amount === 400 && pots[1].amount === 600 && pots[2].amount === 400, "Side-pot amounts are incorrect");
+assert(pots.reduce(function (sum, pot) { return sum + pot.amount; }, 0) === 1400, "Side pots must conserve chips");
+assert(pots[2].eligibleIds.length === 1 && pots[2].eligibleIds[0] === "d", "Folded players cannot win a side pot");
+
+for (var i = 0; i < 500; i++) {
+  var seven = PokerCore.shuffle(deck).slice(0, 7);
+  var first = PokerCore.bestHand(seven);
+  var second = PokerCore.bestHand(PokerCore.shuffle(seven));
+  assert(PokerCore.compareScore(first.score, second.score) === 0, "Evaluation must not depend on card order");
+}
+
+function seeded(seed) {
+  return function () {
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    return (seed >>> 0) / 4294967296;
+  };
+}
+var acesEquity = PokerCore.estimateEquity({
+  hole: cards("A♠ A♥"), community: [], opponentModels: [{ strengthBias: 0, bluffMix: .15 }], trials: 1200, rng: seeded(20260927)
+});
+assert(acesEquity > .74 && acesEquity < .95, "Pocket aces heads-up equity is outside a sane range");
+
+"Engine tests OK: categories, 169 ranges, wheel, seven-card selection, deck integrity, side pots, 500 permutations, range equity";

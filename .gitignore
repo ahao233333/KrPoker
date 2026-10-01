@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# 构建产物：APK 与中间文件可由 android/build-apk.sh 重新生成
+android/manual-build/
+android/**/build/
+
+# 本机相关路径与缓存
+android/local.properties
+android/.gradle/

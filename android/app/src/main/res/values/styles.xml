@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.RiverstonePoker" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">@color/riverstone_background</item>
+        <item name="android:colorAccent">@color/riverstone_gold</item>
+        <item name="android:navigationBarColor">@color/riverstone_background</item>
+        <item name="android:statusBarColor">@color/riverstone_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

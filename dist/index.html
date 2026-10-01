@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07110e" />
+    <meta name="description" content="完全离线运行的单机无限注德州扑克训练游戏" />
+    <title>KrPoker · 离线德州扑克</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <button class="back-button" id="leaveButton" hidden aria-label="退出牌局" title="退出牌局">←</button>
+        <div class="topbar-center">
+          <span class="status-dot"></span>
+          <span>本地运行</span>
+          <span class="divider"></span>
+          <span id="handNumber">等待开桌</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="soundButton" aria-label="切换声音">声音：开</button>
+        </div>
+      </header>
+
+      <section class="game-layout">
+        <aside class="left-rail panel">
+          <div class="panel-title-row">
+            <div><span class="eyebrow">TABLE NOTES</span><h2>本桌观察</h2></div>
+            <span class="count-badge" id="opponentCount">0</span>
+          </div>
+          <div class="opponent-list" id="opponentList">
+            <div class="empty-state">开桌后，这里会记录每位对手的固定风格。</div>
+          </div>
+          <div class="fairness-card">
+            <span class="fairness-icon">◆</span>
+            <div><strong>公平发牌</strong><p>使用系统安全随机源洗牌，AI 无法读取底牌或未来公共牌。</p></div>
+          </div>
+        </aside>
+
+        <section class="table-stage" aria-label="德州扑克牌桌">
+          <div class="felt-table">
+            <div class="felt-ring"></div>
+            <div class="table-brand" aria-hidden="true"><span>KR</span><small>KRPOKER</small></div>
+            <div class="pot-display"><small>底池</small><strong id="potAmount">0</strong></div>
+            <div class="community-cards" id="communityCards" aria-label="公共牌"></div>
+            <div class="seat-layer" id="seatLayer"></div>
+            <div class="chip-fx-layer" id="chipFxLayer" aria-hidden="true"></div>
+          </div>
+
+          <div class="action-dock" id="actionDock">
+            <div class="turn-summary">
+              <span id="turnLabel">先设置牌桌</span>
+              <strong id="handHint">—</strong>
+              <small id="handInvestment">本手已投入 0</small>
+            </div>
+            <div class="bet-control" id="betControl">
+              <div class="bet-line"><span>下注额</span><strong id="betAmountLabel">0</strong></div>
+              <input id="betSlider" type="range" min="0" max="100" value="0" disabled aria-label="下注金额" />
+              <div class="quick-bets">
+                <button data-pot="0.33" disabled>⅓ 池</button>
+                <button data-pot="0.5" disabled>½ 池</button>
+                <button data-pot="0.75" disabled>¾ 池</button>
+                <button data-pot="1" disabled>满池</button>
+              </div>
+            </div>
+            <div class="action-buttons">
+              <button class="action secondary" id="foldButton" disabled>弃牌</button>
+              <button class="action secondary" id="callButton" disabled>过牌</button>
+              <button class="action primary" id="raiseButton" disabled>下注</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="right-rail panel">
+          <div class="panel-title-row"><div><span class="eyebrow">HAND FEED</span><h2>牌局记录</h2></div></div>
+          <div class="log-list" id="gameLog"><div class="empty-state">行动与结算会出现在这里。</div></div>
+          <div class="rail-footer">
+            <div><span>盲注</span><strong id="blindInfo">—</strong></div>
+            <div><span>本桌手数</span><strong id="handsPlayed">0</strong></div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="setupModal">
+      <section class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+        <div class="setup-heading"><span class="brand-mark large">K</span><div><span class="eyebrow">KRPOKER</span><h1 id="setupTitle">建立离线牌桌</h1><p>每位 AI 入座时都会获得随机且固定的性格，直到你离桌。</p></div></div>
+        <div class="settings-grid">
+          <label class="setting-field"><span>AI 对手数量</span><select id="aiCount"><option value="1">1 位</option><option value="2">2 位</option><option value="3" selected>3 位</option><option value="4">4 位</option><option value="5">5 位</option><option value="6">6 位</option><option value="7">7 位</option><option value="8">8 位</option></select></label>
+          <label class="setting-field"><span>初始筹码</span><select id="startingChips"><option value="2000">2,000</option><option value="5000" selected>5,000</option><option value="10000">10,000</option><option value="20000">20,000</option></select></label>
+          <label class="setting-field"><span>小盲 / 大盲</span><select id="blindLevel"><option value="10">10 / 20</option><option value="25" selected>25 / 50</option><option value="50">50 / 100</option><option value="100">100 / 200</option></select></label>
+          <label class="setting-field"><span>思考速度</span><select id="thinkSpeed"><option value="fast">快速</option><option value="natural" selected>自然</option><option value="slow">沉浸</option></select></label>
+        </div>
+        <div class="setup-note"><span>01</span><p>标准无限注规则，支持全下、主池与边池。筹码耗尽后可领取 2,000 救济筹码。</p></div>
+        <button class="setup-stats-button" id="statsButton">查看训练数据</button>
+        <button class="start-button" id="startButton">让 AI 入座 <span>→</span></button>
+        <p class="privacy-line">无需联网 · 无账号 · 数据仅保存在当前设备</p>
+      </section>
+    </div>
+
+    <div class="modal-backdrop hidden" id="statsModal">
+      <section class="stats-card" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+        <div class="stats-heading">
+          <div><span class="eyebrow">TRAINING DATA</span><h2 id="statsTitle">长期训练数据</h2></div>
+          <button class="modal-close" id="statsClose" aria-label="关闭训练数据">×</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-tile"><span>总手数</span><strong id="statHands">0</strong></div>
+          <div class="stat-tile"><span>VPIP 入池率</span><strong id="statVpip">0%</strong></div>
+          <div class="stat-tile"><span>PFR 翻前加注</span><strong id="statPfr">0%</strong></div>
+          <div class="stat-tile"><span>摊牌胜率</span><strong id="statShowdown">0%</strong></div>
+          <div class="stat-tile wide"><span>累计盈亏</span><strong id="statNet">0</strong><i id="statNetBar"></i></div>
+        </div>
+        <div class="position-stats">
+          <span class="eyebrow">POSITION RESULTS</span>
+          <div id="positionStats"></div>
+        </div>
+        <p class="stats-note">数据只记录你的公开行动与结果，不会显示或泄露 AI 的隐藏参数。</p>
+      </section>
+    </div>
+
+    <div class="rotate-hint" aria-hidden="true"><span>↻</span> 横屏体验更佳</div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./poker-core.js"></script>
+    <script src="./game.js"></script>
+  </body>
+</html>

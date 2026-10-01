@@ -1,0 +1,67 @@
+ObjC.import("Foundation");
+
+function makeElement(id) {
+  return {
+    id: id,
+    value: "",
+    textContent: "",
+    innerHTML: id === "gameLog" ? '<div class="empty-state"></div>' : "",
+    hidden: false,
+    disabled: false,
+    dataset: {},
+    children: [],
+    classList: { add: function () {}, remove: function () {}, toggle: function () {} },
+    style: { setProperty: function () {} },
+    addEventListener: function (name, callback) { this["on" + name] = callback; },
+    querySelector: function (selector) { return selector === ".empty-state" && this.innerHTML.indexOf("empty-state") >= 0 ? {} : null; },
+    prepend: function (child) { this.children.unshift(child); this.innerHTML = "content"; },
+    appendChild: function (child) { this.children.push(child); },
+    get lastElementChild() { return this.children[this.children.length - 1]; },
+    remove: function () {}
+  };
+}
+
+var ids = [
+  "setupModal", "startButton", "leaveButton", "aiCount", "startingChips", "blindLevel", "thinkSpeed",
+  "opponentList", "opponentCount", "seatLayer", "communityCards", "chipFxLayer", "potAmount", "handNumber", "blindInfo", "handsPlayed",
+  "gameLog", "turnLabel", "handHint", "handInvestment", "betSlider", "betAmountLabel", "foldButton", "callButton", "raiseButton",
+  "soundButton", "toast", "statsButton", "statsModal", "statsClose", "statHands", "statVpip", "statPfr",
+  "statShowdown", "statNet", "statNetBar", "positionStats"
+];
+var elements = {};
+ids.forEach(function (id) { elements[id] = makeElement(id); });
+elements.aiCount.value = "3";
+elements.startingChips.value = "5000";
+elements.blindLevel.value = "25";
+elements.thinkSpeed.value = "fast";
+var quickButtons = ["0.33", "0.5", "0.75", "1"].map(function (pot) { var el = makeElement("quick"); el.dataset.pot = pot; return el; });
+
+var document = {
+  baseURI: "file:///android_asset/index.html",
+  hidden: false,
+  getElementById: function (id) { return elements[id]; },
+  querySelectorAll: function () { return quickButtons; },
+  createElement: function (tag) { return makeElement(tag); },
+  addEventListener: function () {}
+};
+var localStorage = { getItem: function () { return null; }, setItem: function () {} };
+var crypto = { getRandomValues: function (array) { for (var i = 0; i < array.length; i++) array[i] = (Math.random() * 4294967296) >>> 0; return array; } };
+var window = {};
+var self = window;
+function setTimeout() { return 1; }
+function clearTimeout() {}
+
+var corePath = "/Users/Apple/develop/poker/dist/poker-core.js";
+var coreSource = $.NSString.stringWithContentsOfFileEncodingError(corePath, $.NSUTF8StringEncoding, null).js;
+eval(coreSource);
+var gamePath = "/Users/Apple/develop/poker/dist/game.js";
+var gameSource = $.NSString.stringWithContentsOfFileEncodingError(gamePath, $.NSUTF8StringEncoding, null).js;
+eval(gameSource);
+if (typeof elements.startButton.onclick !== "function") throw new Error("Start button is not wired");
+elements.startButton.onclick();
+if (elements.seatLayer.innerHTML.indexOf("seat-box") < 0) throw new Error("Seats did not render");
+if (elements.communityCards.innerHTML.indexOf("card") < 0) throw new Error("Board did not render");
+if (elements.opponentList.innerHTML.indexOf("参数已锁定") < 0) throw new Error("AI profiles did not render");
+if (/紧凶型|松凶型|稳健型|跟注站|诡诈型|均衡型|冒险型/.test(elements.opponentList.innerHTML)) throw new Error("AI type label is visible");
+if (/激进度|入池宽度|style-bars/.test(elements.opponentList.innerHTML)) throw new Error("AI parameters are visible");
+"Smoke test OK: table opened, 4 seats rendered, AI profiles locked";
