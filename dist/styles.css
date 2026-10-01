@@ -258,10 +258,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
   .topbar-actions { gap: 5px; }
   .speed-select { width: 82px; padding-left: 7px; font-size: .64rem; }
   .ghost-button { padding-inline: 8px; }
-  .setup-card { padding: 22px 18px; }
-  .setup-heading { align-items: flex-start; }
-  .setup-heading h1 { font-size: 1.4rem; }
-  .settings-grid { grid-template-columns: 1fr 1fr; }
   .felt-table { min-height: 0; }
   .seat { width: 88px; }
   .seat-box { padding: 6px 3px; }
@@ -272,9 +268,47 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
   .quick-bets button { min-height: 36px; }
   .ghost-button { min-height: 38px; }
   .stats-card { padding: 20px 16px; max-height: 92vh; overflow: auto; }
+
+  /* 开局面板：压缩到一屏内，避免必须下滑才能点「让 AI 入座」 */
+  .modal-backdrop { align-items: start; padding: 10px; padding-block: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-bottom)); }
+  .setup-card { padding: 15px 14px; border-radius: 13px; }
+  .setup-heading { gap: 11px; padding-bottom: 11px; align-items: center; }
+  .setup-heading h1 { margin-top: 2px; font-size: 1.12rem; }
+  .setup-heading p { margin-top: 3px; font-size: .64rem; line-height: 1.35; }
+  .brand-mark.large { width: 36px; height: 36px; font-size: 1rem; }
+  /* 两项一行，五个字段收成三行 */
+  .settings-grid { grid-template-columns: 1fr 1fr; gap: 7px 8px; margin: 10px 0; }
+  .setting-field { gap: 3px; font-size: .6rem; }
+  .setting-field select { padding: 8px 7px; font-size: .68rem; }
+  .setup-note { gap: 8px; padding: 7px 9px; font-size: .6rem; line-height: 1.4; border-radius: 7px; }
+  .setup-note + .setup-note { margin-top: 5px; }
+  .setup-stats-button { margin-top: 8px; padding: 7px 12px; min-height: 34px; font-size: .68rem; }
+  .start-button { min-height: 44px; margin-top: 6px; padding: 8px 14px; font-size: .84rem; }
+  .privacy-line { margin-top: 7px; font-size: .58rem; }
 }
 @media (max-width: 340px) {
-  .settings-grid { grid-template-columns: 1fr; }
+  /* 极窄屏保持两列：单列会把五个字段拉成五行，反而更高 */
+  .settings-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .setup-heading p { display: none; }
+  .setup-note { padding: 6px 8px; }
+}
+
+/* 高度不足时进一步压缩，保证「让 AI 入座」始终在首屏内可点 */
+@media (max-width: 560px) and (max-height: 700px) {
+  .setup-heading { padding-bottom: 9px; }
+  .setup-heading p { display: none; }
+  .settings-grid { margin: 8px 0; gap: 6px 7px; }
+  /* 选择框保持可点按高度，压缩留给留白而不是控件 */
+  .setting-field select { padding: 9px 7px; font-size: .68rem; }
+  .setup-note { padding: 6px 8px; font-size: .58rem; }
+  .setup-stats-button { margin-top: 6px; min-height: 32px; padding: 5px 10px; }
+  .start-button { min-height: 42px; margin-top: 5px; }
+  .privacy-line { display: none; }
+}
+
+@media (max-width: 560px) and (max-height: 620px) {
+  .setup-note { display: none; }
+  .setup-heading { padding-bottom: 6px; }
 }
 @media (max-height: 560px) and (orientation: landscape) {
   html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -321,18 +355,18 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
   .action-buttons { grid-template-columns: 1fr 1fr 1.15fr; gap: 5px; }
   .action { min-height: 42px; border-radius: 7px; font-size: .67rem; }
   .modal-backdrop { padding-block: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-bottom)); }
-  .setup-card { width: min(760px, 100%); padding: 12px 16px; border-radius: 12px; }
-  .setup-heading { gap: 12px; padding-bottom: 10px; }
-  .brand-mark.large { width: 42px; height: 42px; font-size: 1.3rem; }
-  .setup-heading h1 { margin-top: 2px; font-size: 1.15rem; }
-  .setup-heading p { margin-top: 3px; font-size: .65rem; }
-  .settings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
-  .setting-field { gap: 4px; font-size: .62rem; }
-  .setting-field select { padding: 9px 8px; }
-  .setup-note { padding: 8px 10px; font-size: .62rem; line-height: 1.35; }
-  .setup-stats-button { margin-top: 7px; padding: 7px 12px; }
-  .start-button { min-height: 40px; margin-top: 5px; padding: 7px 14px; }
-  .privacy-line { margin-top: 6px; }
+  .setup-card { width: min(760px, 100%); padding: 10px 14px; border-radius: 12px; }
+  .setup-heading { gap: 10px; padding-bottom: 8px; }
+  .brand-mark.large { width: 34px; height: 34px; font-size: 1.1rem; }
+  .setup-heading h1 { margin-top: 1px; font-size: 1.05rem; }
+  .setup-heading p { display: none; }
+  .settings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
+  .setting-field { gap: 3px; font-size: .58rem; }
+  .setting-field select { padding: 8px 5px; font-size: .64rem; min-height: 34px; }
+  .setup-note { padding: 5px 8px; font-size: .58rem; line-height: 1.3; margin-top: 4px; }
+  .setup-stats-button { margin-top: 5px; min-height: 32px; padding: 5px 10px; font-size: .66rem; }
+  .start-button { min-height: 38px; margin-top: 4px; padding: 6px 12px; font-size: .78rem; }
+  .privacy-line { display: none; }
 }
 @media (max-width: 620px) and (max-height: 560px) and (orientation: landscape) {
   .action-dock { grid-template-columns: 82px minmax(90px, 1fr) minmax(170px, 200px); gap: 4px; padding-inline: 5px; }
