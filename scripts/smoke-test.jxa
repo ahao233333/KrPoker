@@ -11,7 +11,7 @@ function makeElement(id) {
     dataset: {},
     children: [],
     classList: { add: function () {}, remove: function () {}, toggle: function () {} },
-    style: { setProperty: function () {} },
+    style: { width: "", setProperty: function (key, value) { this[key] = value; } },
     addEventListener: function (name, callback) { this["on" + name] = callback; },
     querySelector: function (selector) { return selector === ".empty-state" && this.innerHTML.indexOf("empty-state") >= 0 ? {} : null; },
     prepend: function (child) { this.children.unshift(child); this.innerHTML = "content"; },
@@ -27,7 +27,8 @@ var ids = [
   "opponentList", "opponentCount", "seatLayer", "communityCards", "chipFxLayer", "potAmount", "handNumber", "blindInfo", "handsPlayed",
   "gameLog", "turnLabel", "handHint", "handInvestment", "betSlider", "betAmountLabel", "foldButton", "callButton", "raiseButton",
   "soundButton", "toast", "statsButton", "statsModal", "statsClose", "statHands", "statVpip", "statPfr",
-  "statShowdown", "statNet", "statNetBar", "positionStats"
+  "statShowdown", "statNet", "statNetBar", "positionStats",
+  "tournamentHud", "hudLevel", "hudNextLevel", "hudAverage", "hudPressure", "hudProgress"
 ];
 var elements = {};
 ids.forEach(function (id) { elements[id] = makeElement(id); });

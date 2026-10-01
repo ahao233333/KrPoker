@@ -155,6 +155,7 @@
       scheduleTurn: K.scheduleTurn,
       potSize: K.potSize,
       activePlayers: K.activePlayers,
+      renderTournamentHud: K.renderTournamentHud,
       openTable
     };
   }

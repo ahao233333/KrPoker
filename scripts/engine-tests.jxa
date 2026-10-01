@@ -126,4 +126,28 @@ assert(richPressure > 0, "高于均码应为正压力");
 assert(poorPressure < 0, "低于均码应为负压力");
 assert(PokerCore.stackPressure(0, [1000], 50) === 0, "零筹码应无压力值");
 
-"Engine tests OK: categories, 169 ranges, wheel, seven-card selection, deck integrity, side pots, 500 permutations, range equity, stack depth, SPR, multiway thresholds, tournament levels, stack pressure";
+// 级别进度：HUD 进度条依赖它，必须落在 0 到 length 之间且单调。
+var p0 = PokerCore.levelProgress(0);
+assert(p0.elapsed === 0 && p0.length === 12, "第 0 手应为 0/12");
+var p6 = PokerCore.levelProgress(6);
+assert(p6.elapsed === 6 && p6.remaining === 6, "第 6 手应为 6/12，剩 6 手");
+var p12 = PokerCore.levelProgress(12);
+assert(p12.elapsed === 0, "跨级别后进度应重置为 0");
+assert(p12.length === 12, "12->24 的级别跨度应为 12 手");
+var p36 = PokerCore.levelProgress(36);
+assert(p36.length === 14, "36->50 的级别跨度应为 14 手");
+
+// 进度值必须是有限数且不越界，避免 HUD 出现 NaN。
+for (var hands = 0; hands <= 120; hands++) {
+  var progress = PokerCore.levelProgress(hands);
+  assert(isFinite(progress.elapsed), "elapsed 必须是有限数：第 " + hands + " 手");
+  assert(isFinite(progress.length) && progress.length > 0, "length 必须为正有限数：第 " + hands + " 手");
+  assert(progress.elapsed >= 0 && progress.elapsed <= progress.length,
+    "进度越界：第 " + hands + " 手为 " + progress.elapsed + "/" + progress.length);
+  assert(progress.remaining === progress.length - progress.elapsed, "remaining 应与 length - elapsed 一致");
+  // elapsed + remaining 必须等于该级别跨度，HUD 宽度才不会失真。
+  assert(progress.elapsed + progress.remaining === progress.length,
+    "elapsed + remaining 应等于 length：第 " + hands + " 手");
+}
+
+"Engine tests OK: categories, 169 ranges, wheel, seven-card selection, deck integrity, side pots, 500 permutations, range equity, stack depth, SPR, multiway thresholds, tournament levels, stack pressure, level progress";

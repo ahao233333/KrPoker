@@ -36,7 +36,9 @@
     sound: $("soundButton"), toast: $("toast"), statsButton: $("statsButton"),
     statsModal: $("statsModal"), statsClose: $("statsClose"),
     statHands: $("statHands"), statVpip: $("statVpip"), statPfr: $("statPfr"), statShowdown: $("statShowdown"),
-    statNet: $("statNet"), statNetBar: $("statNetBar"), positionStats: $("positionStats")
+    statNet: $("statNet"), statNetBar: $("statNetBar"), positionStats: $("positionStats"),
+    tournamentHud: $("tournamentHud"), hudLevel: $("hudLevel"), hudNextLevel: $("hudNextLevel"),
+    hudAverage: $("hudAverage"), hudPressure: $("hudPressure"), hudProgress: $("hudProgress")
   };
 
   // 唯一可变状态。各模块通过 K.state 读写，不各自持有副本。

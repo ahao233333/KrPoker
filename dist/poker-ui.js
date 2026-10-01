@@ -39,6 +39,7 @@
       renderCard(game.community[i], false, game.animateBoardFrom != null && i >= game.animateBoardFrom ? i - game.animateBoardFrom : null)
     ).join("");
     renderSeats();
+    renderTournamentHud();
     game.animateBoardFrom = null;
     if (!game.handOver && game.actingIndex >= 0) {
       const actor = game.players[game.actingIndex];
@@ -67,9 +68,9 @@
       const previousChips = game.lastRenderedChips.get(p.id);
       const chipChanged = previousChips != null && previousChips !== p.chips;
       game.lastRenderedChips.set(p.id, p.chips);
-      return `<div class="seat ${isActor ? "active" : ""} ${p.folded ? "folded" : ""} ${p.winner ? "winner" : ""} ${isActor && !p.human ? "ai-thinking" : ""}" style="left:${x}%;top:${y}%">
+      return `<div class="seat ${isActor ? "active" : ""} ${p.folded ? "folded" : ""} ${p.winner ? "winner" : ""} ${p.eliminated ? "eliminated" : ""} ${isActor && !p.human ? "ai-thinking" : ""}" style="left:${x}%;top:${y}%">
         <div class="seat-cards">${cards}</div>
-        <div class="seat-box">${dealer}<div class="seat-name"><span>${p.name}</span></div><div class="seat-chips ${chipChanged ? "chip-change" : ""}">${formatChips(p.chips)}</div>${p.lastAction ? `<div class="seat-bet">${p.lastAction}${p.bet ? ` · ${formatChips(p.bet)}` : ""}</div>` : p.bet ? `<div class="seat-bet">${formatChips(p.bet)}</div>` : ""}</div>
+        <div class="seat-box">${dealer}<div class="seat-name"><span>${p.name}</span></div><div class="seat-chips ${chipChanged ? "chip-change" : ""}">${p.eliminated ? `第 ${p.placement} 名` : formatChips(p.chips)}</div>${p.eliminated ? "" : p.lastAction ? `<div class="seat-bet">${p.lastAction}${p.bet ? ` · ${formatChips(p.bet)}` : ""}</div>` : p.bet ? `<div class="seat-bet">${formatChips(p.bet)}</div>` : ""}</div>
       </div>`;
     }).join("");
     game.animateHoleCards = false;
@@ -124,12 +125,48 @@
     } catch (_) { /* vibration support varies by device */ }
   }
 
+  // 锦标赛 HUD：只在锦标赛模式显示，用级别进度与均码对比提示处境。
+  function renderTournamentHud() {
+    const game = S.game;
+    const hud = els.tournamentHud;
+    if (!hud) return;
+    if (!game || game.mode !== "tournament") { hud.hidden = true; return; }
+    hud.hidden = false;
+
+    const core = window.PokerCore;
+    els.hudLevel.textContent = `第 ${game.levelIndex + 1} 级`;
+
+    // 距下次涨盲：溢出阶段没有下一级别，直接显示盲注仍会继续上升。
+    const remaining = core.handsUntilNextLevel(game.handsPlayed);
+    els.hudNextLevel.textContent = remaining == null ? "持续递增" : `${remaining} 手`;
+    els.hudNextLevel.classList.toggle("urgent", remaining != null && remaining <= 3);
+
+    // 均码：场上未淘汰玩家的平均筹码（大盲数）。
+    const stacks = game.players.filter((p) => !p.eliminated && p.chips > 0).map((p) => p.chips);
+    const averageBb = core.averageStackBb(stacks, game.bigBlind);
+    els.hudAverage.textContent = averageBb ? `${Math.round(averageBb)} BB` : "—";
+
+    // 自身处境：相对均码的百分比。正为领先，负为落后。
+    const heroStack = game.players[0].chips;
+    const pressure = core.stackPressure(heroStack, stacks, game.bigBlind);
+    const heroBb = game.bigBlind > 0 ? Math.round(heroStack / game.bigBlind) : 0;
+    const percent = Math.round(pressure * 100);
+    els.hudPressure.textContent = `${heroBb} BB (${percent >= 0 ? "+" : ""}${percent}%)`;
+    els.hudPressure.classList.toggle("ahead", percent > 8);
+    els.hudPressure.classList.toggle("behind", percent < -8);
+
+    // 进度条：当前级别内已打的手数占比。
+    const progress = core.levelProgress(game.handsPlayed);
+    els.hudProgress.style.width = `${Math.min(100, Math.max(0, progress.elapsed / progress.length * 100))}%`;
+  }
+
   K.cardText = cardText;
   K.renderCard = renderCard;
   K.render = render;
   K.renderSeats = renderSeats;
   K.renderOpponents = renderOpponents;
   K.addLog = addLog;
+  K.renderTournamentHud = renderTournamentHud;
   K.showToast = showToast;
   K.tone = tone;
   K.haptic = haptic;

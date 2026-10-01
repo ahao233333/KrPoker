@@ -138,6 +138,24 @@ input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; heigh
 .rail-footer span { display: block; font-size: .6rem; color: var(--faint); }
 .rail-footer strong { display: block; margin-top: 4px; font: 600 .8rem Georgia, serif; }
 
+/* 锦标赛 HUD：级别进度、距涨盲手数、均码对比 */
+.tournament-hud { margin-top: 14px; padding: 12px; border: 1px solid rgba(217,173,103,.22); border-radius: 10px; background: rgba(217,173,103,.05); }
+.tournament-hud[hidden] { display: none; }
+.hud-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 4px 0; }
+.hud-row span { font-size: .62rem; color: var(--faint); }
+.hud-row strong { font: 600 .8rem Georgia, serif; color: var(--ink); }
+.hud-row strong.ahead { color: var(--green); }
+.hud-row strong.behind { color: var(--red); }
+.hud-row strong.urgent { color: var(--gold-bright); }
+.hud-bar { margin-top: 9px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.07); overflow: hidden; }
+.hud-bar i { display: block; height: 100%; width: 0; border-radius: 2px; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); transition: width .3s ease; }
+
+/* 被淘汰的对手在列表与牌桌上都要能一眼看出 */
+.opponent-row.eliminated { opacity: .45; }
+.opponent-row.eliminated .mini-avatar { background: #1a1a1a; color: var(--faint); }
+.seat.eliminated { opacity: .38; }
+.seat.eliminated .seat-chips { text-decoration: line-through; }
+
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: rgba(2,5,4,.82); backdrop-filter: blur(14px); }
 .modal-backdrop.hidden { display: none; }
 #setupModal { display: block; }

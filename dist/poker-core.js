@@ -293,6 +293,26 @@
     return null;
   }
 
+  // 当前级别已进行的手数与该级别总长度，供 HUD 计算进度。
+  // 溢出阶段没有固定长度，用 14 手作为经验跨度。
+  function levelProgress(handsPlayed) {
+    var hands = Math.max(0, handsPlayed || 0);
+    var start = 0;
+    var end = null;
+    for (var i = 0; i < TOURNAMENT_LEVELS.length; i++) {
+      if (TOURNAMENT_LEVELS[i].hands <= hands) start = TOURNAMENT_LEVELS[i].hands;
+      else { end = TOURNAMENT_LEVELS[i].hands; break; }
+    }
+    if (end == null) {
+      // 溢出阶段每 14 手涨一级，用取模保证进度始终落在当前周期内。
+      var overflowElapsed = (hands - start) % 14;
+      return { elapsed: overflowElapsed, length: 14, remaining: 14 - overflowElapsed };
+    }
+    var length = Math.max(1, end - start);
+    var elapsed = Math.min(hands - start, length);
+    return { elapsed: elapsed, length: length, remaining: length - elapsed };
+  }
+
   // 平均筹码（大盲数）。锦标赛里用它衡量自己是否低于均码。
   function averageStackBb(stacks, bigBlind) {
     var values = (stacks || []).filter(function (value) { return typeof value === "number" && value > 0; });
@@ -336,6 +356,7 @@
     stackDepthBucket: stackDepthBucket, multiwayValueThreshold: multiwayValueThreshold,
     TOURNAMENT_LEVELS: TOURNAMENT_LEVELS,
     tournamentLevel: tournamentLevel, handsUntilNextLevel: handsUntilNextLevel,
+    levelProgress: levelProgress,
     averageStackBb: averageStackBb, stackPressure: stackPressure,
     calculateSidePots: calculateSidePots
   });
