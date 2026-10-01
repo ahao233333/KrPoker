@@ -20,6 +20,7 @@
   const els = {
     setup: $("setupModal"), start: $("startButton"), leave: $("leaveButton"),
     aiCount: $("aiCount"), startingChips: $("startingChips"), blindLevel: $("blindLevel"), thinkSpeed: $("thinkSpeed"),
+    gameMode: $("gameMode"), blindField: $("blindField"), tournamentNote: $("tournamentNote"),
     opponentList: $("opponentList"), opponentCount: $("opponentCount"), seatLayer: $("seatLayer"), community: $("communityCards"), chipFx: $("chipFxLayer"),
     pot: $("potAmount"), handNumber: $("handNumber"), blindInfo: $("blindInfo"), handsPlayed: $("handsPlayed"), log: $("gameLog"),
     turnLabel: $("turnLabel"), handHint: $("handHint"), handInvestment: $("handInvestment"), betSlider: $("betSlider"), betAmountLabel: $("betAmountLabel"),
@@ -374,13 +375,19 @@
     if (!game) return;
     const hero = game.players[0];
     if (hero.chips <= 0) { setRescueMode(); return; }
+    if (game.mode === "tournament") {
+      updateTournamentBlinds();
+      // 兜底：即使某一手未经 finishHand，也不会让破产的 AI 重新入座。
+      eliminateBustedPlayers();
+    }
     game.players.forEach((p) => {
-      if (!p.human && p.chips <= 0) {
+      // 现金局里破产的 AI 会重新买入；锦标赛里它们已被淘汰。
+      if (!p.human && p.chips <= 0 && game.mode !== "tournament") {
         p.chips = game.buyIn;
         addLog(`<strong>${p.name}</strong> 补充到 ${formatChips(game.buyIn)} 筹码`, "system");
       }
       Object.assign(p, {
-        cards: [], bet: 0, totalInvested: 0, folded: p.chips <= 0, allIn: false, acted: false,
+        cards: [], bet: 0, totalInvested: 0, folded: p.chips <= 0 || p.eliminated, allIn: false, acted: false,
         raiseLocked: false, lastAction: "", winner: false, plan: null, rangeModel: { strengthBias: 0, bluffMix: .16, rangeWidth: 1 }
       });
     });
@@ -422,6 +429,19 @@
       position: heroPositionLabel(), recorded: false
     };
     addLog(`第 <strong>${game.handNo}</strong> 手开始 · ${game.players[game.dealerIndex].name} 在庄位`, "system");
+    // 锦标赛前注：直接进入底池，不计入当前下注额。
+    if (game.ante > 0) {
+      let anteTotal = 0;
+      game.players.forEach((p) => {
+        if (p.folded || p.chips <= 0) return;
+        const paid = Math.min(game.ante, p.chips);
+        p.chips -= paid;
+        p.totalInvested += paid;
+        anteTotal += paid;
+        if (!p.chips) p.allIn = true;
+      });
+      if (anteTotal > 0) addLog(`每人投入前注 <strong>${formatChips(game.ante)}</strong>`, "system");
+    }
     postBlind(smallIndex, game.smallBlind, "小盲");
     postBlind(bigIndex, game.bigBlind, "大盲");
     game.currentBet = Math.max(...game.players.map((p) => p.bet));
@@ -666,10 +686,17 @@
     game.actingIndex = -1;
     recordTrainingHand();
     disableActions();
+    if (game.mode === "tournament") eliminateBustedPlayers();
     render();
     const hero = game.players[0];
     if (hero.chips <= 0) setRescueMode();
-    else {
+    else if (game.tournamentWon) {
+      els.turnLabel.textContent = "🏆 锦标赛冠军";
+      els.handHint.textContent = `最终筹码 ${formatChips(hero.chips)}`;
+      els.raise.disabled = false;
+      els.raise.textContent = "再来一场";
+      els.raise.dataset.mode = "next";
+    } else {
       els.turnLabel.textContent = "本手已结束";
       els.handHint.textContent = `持有 ${formatChips(hero.chips)} 筹码`;
       els.raise.disabled = false;
@@ -836,12 +863,58 @@
     } catch (_) { /* vibration support varies by device */ }
   }
 
+  // 锦标赛：按手数推进盲注级别，并处理玩家淘汰。
+  function updateTournamentBlinds() {
+    if (!game || game.mode !== "tournament") return;
+    const level = window.PokerCore.tournamentLevel(game.handsPlayed);
+    if (level.index !== game.levelIndex) {
+      game.levelIndex = level.index;
+      game.smallBlind = level.smallBlind;
+      game.bigBlind = level.smallBlind * 2;
+      game.ante = level.ante;
+      game.minRaise = game.bigBlind;
+      const anteNote = level.ante ? `，前注 ${level.ante}` : "";
+      addLog(`<strong>盲注升到 ${level.smallBlind} / ${level.bigBlind}</strong>${anteNote}`, "system");
+      showToast(`盲注升级：${level.smallBlind} / ${level.bigBlind}`);
+      tone(520);
+    }
+  }
+
+  // 淘汰筹码归零的 AI；只剩玩家一人时结束锦标赛。
+  function eliminateBustedPlayers() {
+    if (!game || game.mode !== "tournament") return false;
+    let eliminated = false;
+    game.players.forEach((p) => {
+      if (!p.human && !p.eliminated && p.chips <= 0) {
+        p.eliminated = true;
+        p.placement = game.players.filter((other) => !other.eliminated).length + 1;
+        addLog(`<strong>${p.name}</strong> 被淘汰（第 ${p.placement} 名）`, "system");
+        eliminated = true;
+      }
+    });
+    if (eliminated) {
+      const survivors = game.players.filter((p) => !p.eliminated);
+      if (survivors.length === 1 && survivors[0].human) {
+        game.tournamentWon = true;
+        addLog("<strong>你赢下了这场锦标赛！</strong>", "system");
+        showToast("🏆 锦标赛冠军！");
+      }
+      renderOpponents();
+    }
+    return eliminated;
+  }
+
   function openTable() {
     const aiCount = Number(els.aiCount.value);
     const buyIn = Number(els.startingChips.value);
-    const smallBlind = Number(els.blindLevel.value);
+    const mode = els.gameMode ? els.gameMode.value : "cash";
+    const smallBlind = mode === "tournament"
+      ? window.PokerCore.tournamentLevel(0).smallBlind
+      : Number(els.blindLevel.value);
     game = {
       players: createPlayers(aiCount, buyIn), buyIn, smallBlind, bigBlind: smallBlind * 2,
+      mode, levelIndex: 0, ante: mode === "tournament" ? window.PokerCore.tournamentLevel(0).ante : 0,
+      tournamentWon: false,
       thinkSpeed: els.thinkSpeed.value, dealerIndex: -1, actingIndex: -1, handNo: 0, handsPlayed: 0,
       street: "idle", community: [], deck: [], currentBet: 0, minRaise: smallBlind * 2,
       heroStats: { actions: 0, raises: 0, calls: 0, folds: 0 }, reveal: false, handOver: true,
@@ -852,7 +925,11 @@
     els.leave.hidden = false;
     els.log.innerHTML = "";
     renderOpponents();
-    addLog(`${aiCount} 位 AI 已入座；人格参数将在你离桌前保持不变。`, "system");
+    if (mode === "tournament") {
+      addLog(`锦标赛开始：${aiCount} 位对手，起始盲注 ${smallBlind} / ${smallBlind * 2}，每 12 手涨盲。`, "system");
+    } else {
+      addLog(`${aiCount} 位 AI 已入座；人格参数将在你离桌前保持不变。`, "system");
+    }
     startHand();
   }
 
@@ -876,6 +953,16 @@
 
   els.start.addEventListener("click", openTable);
   els.leave.addEventListener("click", leaveTable);
+  // 锦标赛的盲注由级别表决定，固定盲注选择框随之隐藏。
+  if (els.gameMode) {
+    const syncModeUi = () => {
+      const tournament = els.gameMode.value === "tournament";
+      if (els.blindField) els.blindField.hidden = tournament;
+      if (els.tournamentNote) els.tournamentNote.hidden = !tournament;
+    };
+    els.gameMode.addEventListener("change", syncModeUi);
+    syncModeUi();
+  }
   els.statsButton.addEventListener("click", () => { renderTrainingStats(); els.statsModal.classList.remove("hidden"); });
   els.statsClose.addEventListener("click", () => els.statsModal.classList.add("hidden"));
   els.statsModal.addEventListener("click", (event) => { if (event.target === els.statsModal) els.statsModal.classList.add("hidden"); });

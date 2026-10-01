@@ -23,6 +23,7 @@ function makeElement(id) {
 
 var ids = [
   "setupModal", "startButton", "leaveButton", "aiCount", "startingChips", "blindLevel", "thinkSpeed",
+  "gameMode", "blindField", "tournamentNote",
   "opponentList", "opponentCount", "seatLayer", "communityCards", "chipFxLayer", "potAmount", "handNumber", "blindInfo", "handsPlayed",
   "gameLog", "turnLabel", "handHint", "handInvestment", "betSlider", "betAmountLabel", "foldButton", "callButton", "raiseButton",
   "soundButton", "toast", "statsButton", "statsModal", "statsClose", "statHands", "statVpip", "statPfr",

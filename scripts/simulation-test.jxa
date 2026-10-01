@@ -22,6 +22,7 @@ function makeElement(id) {
 
 var ids = [
   "setupModal", "startButton", "leaveButton", "aiCount", "startingChips", "blindLevel", "thinkSpeed",
+  "gameMode", "blindField", "tournamentNote",
   "opponentList", "opponentCount", "seatLayer", "communityCards", "chipFxLayer", "potAmount", "handNumber", "blindInfo", "handsPlayed",
   "gameLog", "turnLabel", "handHint", "handInvestment", "betSlider", "betAmountLabel", "foldButton", "callButton", "raiseButton",
   "soundButton", "toast", "statsButton", "statsModal", "statsClose", "statHands", "statVpip", "statPfr",
@@ -141,4 +142,34 @@ var chipsAfter = T.game.players.reduce(function (sum, p) { return sum + p.chips;
 assert(chipsBefore === chipsAfter,
   "筹码应在牌桌内守恒：" + chipsBefore + " -> " + chipsAfter);
 
-"Simulation tests OK: strategy context, stack buckets, multiway thresholds, " + handsPlayed + " hands played, modes=" + Object.keys(modesSeen).join("/") + ", chip conservation";
+// --- 场景五：锦标赛模式，盲注递增、前注与淘汰 ---
+elements.gameMode.value = "tournament";
+elements.startingChips.value = "2000";
+elements.aiCount.value = "2";
+elements.startButton.onclick();
+
+assert(T.game.mode === "tournament", "应进入锦标赛模式");
+assert(T.game.smallBlind === 10 && T.game.bigBlind === 20, "锦标赛起始盲注应为 10/20");
+assert(T.game.ante === 0, "第一级别不应有前注");
+
+T.game.handsPlayed = 12;
+T.startHand();
+assert(T.game.smallBlind === 15, "第 12 手后小盲应升到 15，实际 " + T.game.smallBlind);
+
+T.game.handsPlayed = 36;
+T.startHand();
+assert(T.game.smallBlind === 50, "第 36 手后小盲应升到 50，实际 " + T.game.smallBlind);
+assert(T.game.ante === 5, "第 36 手后应开始收 5 点前注，实际 " + T.game.ante);
+var contributors = T.game.players.filter(function (p) { return p.totalInvested > 0; });
+assert(contributors.length >= 2, "前注与盲注应让多人已有投入");
+
+// 淘汰：筹码归零的 AI 不应在下一手重新买入。
+T.game.players.forEach(function (p) { if (!p.human) p.chips = 800; });
+var victim = T.game.players[1];
+victim.chips = 0;
+T.game.handOver = true;
+T.startHand();
+assert(victim.eliminated === true, "筹码归零的 AI 应被标记淘汰");
+assert(victim.chips === 0, "锦标赛中被淘汰的 AI 不应重新买入");
+
+"Simulation tests OK: context, buckets, multiway, tournament levels, antes, elimination, chip conservation";

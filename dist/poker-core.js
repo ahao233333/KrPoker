@@ -247,6 +247,67 @@
     return clamp(baseThreshold + count * .055, .3, .97);
   }
 
+  // --- 第二版：锦标赛盲注结构 ---
+
+  // 常规锦标赛盲注表：手数阈值 -> 小盲。级别用尽后按倍率继续递增。
+  var TOURNAMENT_LEVELS = [
+    { hands: 0, smallBlind: 10, ante: 0 },
+    { hands: 12, smallBlind: 15, ante: 0 },
+    { hands: 24, smallBlind: 25, ante: 0 },
+    { hands: 36, smallBlind: 50, ante: 5 },
+    { hands: 50, smallBlind: 75, ante: 10 },
+    { hands: 64, smallBlind: 100, ante: 15 },
+    { hands: 78, smallBlind: 150, ante: 25 },
+    { hands: 92, smallBlind: 200, ante: 30 }
+  ];
+
+  function tournamentLevel(handsPlayed) {
+    var hands = Math.max(0, handsPlayed || 0);
+    var level = TOURNAMENT_LEVELS[0];
+    for (var i = 0; i < TOURNAMENT_LEVELS.length; i++) {
+      if (hands >= TOURNAMENT_LEVELS[i].hands) level = TOURNAMENT_LEVELS[i];
+      else break;
+    }
+    var index = TOURNAMENT_LEVELS.indexOf(level);
+    // 超出预设表后按每 14 手 1.35 倍继续增长，避免无限局盲注停滞。
+    if (index === TOURNAMENT_LEVELS.length - 1) {
+      var extra = Math.floor((hands - level.hands) / 14);
+      if (extra > 0) {
+        return {
+          smallBlind: Math.round(level.smallBlind * Math.pow(1.35, extra)),
+          ante: Math.round(level.ante * Math.pow(1.35, extra)),
+          index: index + extra,
+          overflow: true
+        };
+      }
+    }
+    return { smallBlind: level.smallBlind, ante: level.ante, index: index, overflow: false };
+  }
+
+  // 下一次涨盲还剩几手；已到顶则返回 null。
+  function handsUntilNextLevel(handsPlayed) {
+    var hands = Math.max(0, handsPlayed || 0);
+    for (var i = 0; i < TOURNAMENT_LEVELS.length; i++) {
+      if (TOURNAMENT_LEVELS[i].hands > hands) return TOURNAMENT_LEVELS[i].hands - hands;
+    }
+    return null;
+  }
+
+  // 平均筹码（大盲数）。锦标赛里用它衡量自己是否低于均码。
+  function averageStackBb(stacks, bigBlind) {
+    var values = (stacks || []).filter(function (value) { return typeof value === "number" && value > 0; });
+    if (!values.length || !bigBlind) return 0;
+    var total = values.reduce(function (sum, value) { return sum + value; }, 0);
+    return (total / values.length) / bigBlind;
+  }
+
+  // 相对均码的处境，供 AI 决定是施压还是保守。
+  function stackPressure(stack, stacks, bigBlind) {
+    var average = averageStackBb(stacks, bigBlind);
+    if (!average || !stack) return 0;
+    return clamp((stack / bigBlind) / average - 1, -1, 2);
+  }
+
   function calculateSidePots(contributions, foldedIds) {
     var folded = new Set(foldedIds || []);
     var levels = Array.from(new Set(contributions.map(function (item) { return item.amount; }).filter(Boolean))).sort(function (a, b) { return a - b; });
@@ -273,6 +334,9 @@
     currentStrength: currentStrength, estimateEquity: estimateEquity,
     effectiveStackBb: effectiveStackBb, spr: spr,
     stackDepthBucket: stackDepthBucket, multiwayValueThreshold: multiwayValueThreshold,
+    TOURNAMENT_LEVELS: TOURNAMENT_LEVELS,
+    tournamentLevel: tournamentLevel, handsUntilNextLevel: handsUntilNextLevel,
+    averageStackBb: averageStackBb, stackPressure: stackPressure,
     calculateSidePots: calculateSidePots
   });
 })(typeof self !== "undefined" ? self : this);

@@ -96,4 +96,34 @@ assert(PokerCore.multiwayValueThreshold(.7, 2) > .7, "多人底池应抬高价�
 assert(PokerCore.multiwayValueThreshold(.7, 5) > PokerCore.multiwayValueThreshold(.7, 2), "对手越多门槛应越高");
 assert(PokerCore.multiwayValueThreshold(.7, 1) === .7, "单挑不应改变门槛");
 
-"Engine tests OK: categories, 169 ranges, wheel, seven-card selection, deck integrity, side pots, 500 permutations, range equity, stack depth, SPR, multiway thresholds";
+// --- 第二版：锦标赛盲注结构 ---
+assert(PokerCore.tournamentLevel(0).smallBlind === 10, "第 0 手应为 10/20 盲注");
+assert(PokerCore.tournamentLevel(11).smallBlind === 10, "未到阈值不应涨盲");
+assert(PokerCore.tournamentLevel(12).smallBlind === 15, "第 12 手应涨到 15");
+assert(PokerCore.tournamentLevel(36).ante === 5, "第 36 手应开始收前注");
+
+// 盲注必须单调不降。
+var previousBlind = 0;
+for (var hands = 0; hands <= 140; hands++) {
+  var level = PokerCore.tournamentLevel(hands);
+  assert(level.smallBlind >= previousBlind, "盲注不得下降：第 " + hands + " 手");
+  previousBlind = level.smallBlind;
+}
+assert(PokerCore.tournamentLevel(140).overflow === true, "超出预设表后应进入溢出递增");
+assert(PokerCore.tournamentLevel(140).smallBlind > 200, "溢出后盲注应继续增长");
+
+assert(PokerCore.handsUntilNextLevel(0) === 12, "第 0 手距下次涨盲应为 12 手");
+assert(PokerCore.handsUntilNextLevel(11) === 1, "第 11 手距涨盲应为 1 手");
+assert(PokerCore.handsUntilNextLevel(999) === null, "到达顶级别后应返回 null");
+
+assert(PokerCore.averageStackBb([1000, 3000], 50) === 40, "平均筹码应为 (1000+3000)/2/50 = 40");
+assert(PokerCore.averageStackBb([], 50) === 0, "空筹码列表应为 0");
+
+// 高于均码为正压力，低于均码为负。
+var richPressure = PokerCore.stackPressure(6000, [1000, 6000], 50);
+var poorPressure = PokerCore.stackPressure(1000, [1000, 6000], 50);
+assert(richPressure > 0, "高于均码应为正压力");
+assert(poorPressure < 0, "低于均码应为负压力");
+assert(PokerCore.stackPressure(0, [1000], 50) === 0, "零筹码应无压力值");
+
+"Engine tests OK: categories, 169 ranges, wheel, seven-card selection, deck integrity, side pots, 500 permutations, range equity, stack depth, SPR, multiway thresholds, tournament levels, stack pressure";

@@ -87,12 +87,14 @@
       <section class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
         <div class="setup-heading"><span class="brand-mark large">K</span><div><span class="eyebrow">KRPOKER</span><h1 id="setupTitle">建立离线牌桌</h1><p>每位 AI 入座时都会获得随机且固定的性格，直到你离桌。</p></div></div>
         <div class="settings-grid">
+          <label class="setting-field"><span>游戏模式</span><select id="gameMode"><option value="cash" selected>现金局 · 固定盲注</option><option value="tournament">锦标赛 · 盲注递增</option></select></label>
           <label class="setting-field"><span>AI 对手数量</span><select id="aiCount"><option value="1">1 位</option><option value="2">2 位</option><option value="3" selected>3 位</option><option value="4">4 位</option><option value="5">5 位</option><option value="6">6 位</option><option value="7">7 位</option><option value="8">8 位</option></select></label>
           <label class="setting-field"><span>初始筹码</span><select id="startingChips"><option value="2000">2,000</option><option value="5000" selected>5,000</option><option value="10000">10,000</option><option value="20000">20,000</option></select></label>
-          <label class="setting-field"><span>小盲 / 大盲</span><select id="blindLevel"><option value="10">10 / 20</option><option value="25" selected>25 / 50</option><option value="50">50 / 100</option><option value="100">100 / 200</option></select></label>
+          <label class="setting-field" id="blindField"><span>小盲 / 大盲</span><select id="blindLevel"><option value="10">10 / 20</option><option value="25" selected>25 / 50</option><option value="50">50 / 100</option><option value="100">100 / 200</option></select></label>
           <label class="setting-field"><span>思考速度</span><select id="thinkSpeed"><option value="fast">快速</option><option value="natural" selected>自然</option><option value="slow">沉浸</option></select></label>
         </div>
         <div class="setup-note"><span>01</span><p>标准无限注规则，支持全下、主池与边池。筹码耗尽后可领取 2,000 救济筹码。</p></div>
+        <div class="setup-note" id="tournamentNote" hidden><span>02</span><p>锦标赛模式：盲注每 12 手递增并逐步加入前注，被淘汰的对手不会重新入座。</p></div>
         <button class="setup-stats-button" id="statsButton">查看训练数据</button>
         <button class="start-button" id="startButton">让 AI 入座 <span>→</span></button>
         <p class="privacy-line">无需联网 · 无账号 · 数据仅保存在当前设备</p>
