@@ -6,6 +6,24 @@
 
 直接双击 `dist/index.html` 即可游玩。也可以在项目目录启动任意静态文件服务器，并访问 `dist/`。
 
+## 代码结构
+
+纯前端，零构建、零依赖。各模块按顺序加载并挂到 `window.KrPoker`，
+唯一的可变状态集中在 `poker-state.js`，其余模块通过 `KrPoker.state` 读写。
+
+| 文件 | 行数 | 职责 |
+| --- | --- | --- |
+| `dist/poker-core.js` | 342 | 引擎：牌型评估、胜率模拟、边池、盲注表。纯函数，不碰 DOM |
+| `dist/poker-state.js` | 121 | 共享状态、DOM 引用、通用工具、锦标赛辅助 |
+| `dist/poker-stats.js` | 65 | 训练数据读写与展示 |
+| `dist/poker-ui.js` | 136 | 渲染、牌局记录、音效与触感 |
+| `dist/poker-ai.js` | 299 | 人格生成、对手建模、街道计划、决策入口 |
+| `dist/poker-table.js` | 416 | 发牌、行动、街道推进、摊牌结算 |
+| `dist/game.js` | 161 | 入口：牌桌生命周期与事件绑定 |
+| `dist/ai-worker.js` | 27 | 后台线程胜率模拟 |
+
+加载顺序由 `dist/index.html` 底部的 `script` 标签决定，改动模块依赖时需同步更新。
+
 ## 已实现
 
 - 1～8 名 AI 对手
