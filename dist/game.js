@@ -46,6 +46,7 @@
 
   function leaveTable() {
     clearTimeout(S.timer);
+    if (K.net?.active) K.net.leave();
     S.game = null;
     els.setup.classList.remove("hidden");
     els.leave.hidden = true;
@@ -101,8 +102,16 @@
 
   els.thinkSpeed.addEventListener("change", (event) => setThinkSpeed(event.target.value));
 
-  els.fold.addEventListener("click", () => { if (S.game?.players[S.game.actingIndex]?.human) K.performAction(S.game.players[0], "fold"); });
+  els.fold.addEventListener("click", () => {
+    if (K.net?.active) { K.net.sendAction("fold"); return; }
+    if (S.game?.players[S.game.actingIndex]?.human) K.performAction(S.game.players[0], "fold");
+  });
   els.call.addEventListener("click", () => {
+    if (K.net?.active) {
+      const hero = S.game?.players[0];
+      if (hero) K.net.sendAction(S.game.currentBet > hero.bet ? "call" : "check");
+      return;
+    }
     if (!S.game?.players[S.game.actingIndex]?.human) return;
     const hero = S.game.players[0];
     K.performAction(hero, S.game.currentBet > hero.bet ? "call" : "check");
@@ -112,6 +121,7 @@
     if (mode === "next") K.startHand();
     else if (mode === "restart") leaveTable();
     else if (mode === "rescue") K.claimRescue();
+    else if (mode === "action" && K.net?.active) K.net.sendAction("raise", Number(els.betSlider.value));
     else if (mode === "action" && S.game?.players[S.game.actingIndex]?.human) K.performAction(S.game.players[0], "raise", Number(els.betSlider.value));
   });
 
@@ -181,6 +191,7 @@
   });
 
   document.addEventListener("visibilitychange", () => {
+    if (K.net?.active) return; // 联机局由服务端计时，切后台不暂停
     S.paused = document.hidden;
     if (S.paused) clearTimeout(S.timer);
     else if (S.game && !S.game.handOver) S.timer = setTimeout(K.scheduleTurn, 180);

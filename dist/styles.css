@@ -208,6 +208,18 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
 .start-button { width: 100%; margin-top: 8px; border: 0; border-radius: 10px; padding: 14px 18px; display: flex; justify-content: center; gap: 12px; background: linear-gradient(135deg, #e6c17f, #bd8948); color: #17120b; font-weight: 800; cursor: pointer; }
 .start-button:hover { filter: brightness(1.06); }
 .privacy-line { margin-top: 13px; text-align: center; font-size: .62rem; color: var(--faint); }
+.net-divider { display: flex; align-items: center; gap: 12px; margin-top: 20px; color: var(--faint); font-size: .66rem; letter-spacing: .08em; }
+.net-divider::before, .net-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.net-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
+.setting-field input { width: 100%; box-sizing: border-box; color: var(--ink); padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #101a16; outline: none; font-size: .78rem; }
+.setting-field input:focus { border-color: var(--gold); }
+.net-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.net-actions .setup-stats-button { margin-top: 10px; }
+.room-code { color: var(--gold-bright); letter-spacing: .2em; }
+.lobby-players { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.lobby-player { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.02); font-size: .78rem; }
+.lobby-player em { margin-left: auto; font-style: normal; font-size: .62rem; color: var(--gold); border: 1px solid rgba(217,173,103,.35); border-radius: 5px; padding: 2px 6px; }
+.lobby-player em.offline { color: var(--faint); border-color: var(--line); }
 .toast { position: fixed; z-index: 50; left: 50%; bottom: 24px; transform: translate(-50%, 20px); padding: 10px 16px; border: 1px solid rgba(217,173,103,.26); border-radius: 8px; background: #111a16; color: var(--ink); font-size: .72rem; opacity: 0; pointer-events: none; transition: .25s; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .stats-card { width: min(560px, 100%); padding: 28px; border: 1px solid rgba(217,173,103,.24); border-radius: 18px; background: #0b120f; box-shadow: var(--shadow); }
@@ -285,6 +297,11 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; bo
   .setup-stats-button { margin-top: 8px; padding: 7px 12px; min-height: 34px; font-size: .68rem; }
   .start-button { min-height: 44px; margin-top: 6px; padding: 8px 14px; font-size: .84rem; }
   .privacy-line { margin-top: 7px; font-size: .58rem; }
+  /* 联机区窄屏单列，避免三个输入框挤在一行 */
+  .net-grid { grid-template-columns: 1fr; gap: 6px; margin-top: 8px; }
+  .net-divider { margin-top: 12px; }
+  .setting-field input { padding: 8px 7px; font-size: .68rem; }
+  .net-actions .setup-stats-button { margin-top: 6px; }
 }
 @media (max-width: 340px) {
   /* 极窄屏保持两列：单列会把五个字段拉成五行，反而更高 */

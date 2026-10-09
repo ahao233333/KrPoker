@@ -1,10 +1,41 @@
 # KrPoker Offline Poker
 
-完全离线的单机无限注德州扑克训练游戏。
+完全离线的单机无限注德州扑克训练游戏，也支持朋友之间联机开房。
 
 ## 运行
 
-直接双击 `dist/index.html` 即可游玩。也可以在项目目录启动任意静态文件服务器，并访问 `dist/`。
+直接双击 `dist/index.html` 即可游玩单机。也可以在项目目录启动任意静态文件服务器，并访问 `dist/`。
+
+## 联机（真人局）
+
+开局面板底部的「真人局 · 朋友联机」支持创建/加入房间，2～9 人现金桌：
+
+- 建房生成 4 位房间码，朋友输码加入，房主开局
+- 服务端权威发牌与结算：底牌只发给本人，摊牌前不下发，防作弊
+- 行动超时 45 秒自动过牌/弃牌；破产自动补回买入；一手结束后 8 秒自动开下一手
+- 掉线凭 token 自动重连恢复原座位
+
+服务端零依赖，Node 18+ 直接运行，静态页面与 WebSocket 同端口：
+
+```bash
+node server/index.js 8080          # 本地试玩
+node server/selftest.js            # 集成自测：两人建房打三手
+```
+
+部署到公网（以阿里云 ECS 为例）：
+
+1. 买一台最低配 ECS（1 核 2G 足够），安全组放行一个端口（如 8080）
+2. 装上 Node 18+，把项目拷上去，`node server/index.js 8080` 启动
+3. 朋友在「服务器地址」填 `ws://你的公网IP:8080`，或直接用 `http://你的公网IP:8080` 打开页面（同源免填地址）
+4. 建议用 `pm2 start server/index.js` 或 systemd 保活
+
+| 文件 | 职责 |
+| --- | --- |
+| `server/index.js` | HTTP 静态托管 + 房间管理 + 消息路由 |
+| `server/engine.js` | 服务端桌流引擎（规则与 `poker-table.js` 一致，去 DOM/AI） |
+| `server/ws.js` | 零依赖的最小 WebSocket（RFC6455）实现 |
+| `server/selftest.js` | 端到端自测：脱敏、筹码守恒、重连、离桌 |
+| `dist/poker-net.js` | 客户端网络层：连接、大厅、状态应用与按钮分流 |
 
 ## 代码结构
 
@@ -20,6 +51,7 @@
 | `dist/poker-ai.js` | 299 | 人格生成、对手建模、街道计划、决策入口 |
 | `dist/poker-table.js` | 416 | 发牌、行动、街道推进、摊牌结算 |
 | `dist/game.js` | 161 | 入口：牌桌生命周期与事件绑定 |
+| `dist/poker-net.js` | ~200 | 联机：房间连接、大厅、服务端状态应用 |
 | `dist/ai-worker.js` | 27 | 后台线程胜率模拟 |
 
 加载顺序由 `dist/index.html` 底部的 `script` 标签决定，改动模块依赖时需同步更新。
@@ -81,6 +113,7 @@
 osascript -l JavaScript scripts/engine-tests.jxa      # 规则与核心算法
 osascript -l JavaScript scripts/smoke-test.jxa        # 界面渲染
 osascript -l JavaScript scripts/simulation-test.jxa   # 无头对局模拟
+node server/selftest.js                               # 联机端到端（需 Node 18+）
 ```
 
 - `engine-tests` 覆盖全部牌型、A2345 顺子、七张牌选优、牌堆唯一性、

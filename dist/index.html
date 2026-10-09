@@ -106,6 +106,17 @@
         <div class="setup-note" id="tournamentNote" hidden><span>02</span><p>锦标赛模式：盲注每 12 手递增并逐步加入前注，被淘汰的对手不会重新入座。</p></div>
         <button class="setup-stats-button" id="statsButton">查看训练数据</button>
         <button class="start-button" id="startButton">让 AI 入座 <span>→</span></button>
+        <div class="net-divider"><span>真人局 · 朋友联机</span></div>
+        <div class="net-grid">
+          <label class="setting-field"><span>昵称</span><input id="netName" type="text" maxlength="12" placeholder="你的昵称" autocomplete="off" /></label>
+          <label class="setting-field"><span>服务器地址（可留空）</span><input id="netServer" type="text" placeholder="ws://服务器IP:8080" autocomplete="off" inputmode="url" /></label>
+          <label class="setting-field"><span>房间号（加入时填）</span><input id="netRoom" type="text" maxlength="4" placeholder="如 K7Q2" autocomplete="off" autocapitalize="characters" /></label>
+        </div>
+        <div class="net-actions">
+          <button class="setup-stats-button" id="netCreate">创建房间</button>
+          <button class="setup-stats-button" id="netJoin">加入房间</button>
+        </div>
+        <p class="privacy-line">真人局为现金桌 · 破产自动补码 · 掉线可重连恢复座位</p>
         <p class="privacy-line">无需联网 · 无账号 · 数据仅保存在当前设备</p>
       </section>
     </div>
@@ -131,6 +142,18 @@
       </section>
     </div>
 
+    <div class="modal-backdrop hidden" id="lobbyModal">
+      <section class="stats-card" role="dialog" aria-modal="true" aria-labelledby="lobbyTitle">
+        <div class="stats-heading">
+          <div><span class="eyebrow">LOBBY</span><h2 id="lobbyTitle">房间 <strong id="lobbyRoom" class="room-code">----</strong></h2></div>
+        </div>
+        <div class="lobby-players" id="lobbyPlayers"></div>
+        <p class="stats-note" id="lobbyHint">等待玩家加入</p>
+        <button class="start-button" id="lobbyStart">开始游戏 <span>→</span></button>
+        <p class="stats-note">把 4 位房间号告诉朋友即可加入</p>
+      </section>
+    </div>
+
     <div class="rotate-hint" aria-hidden="true"><span>↻</span> 横屏体验更佳</div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -141,5 +164,6 @@
     <script src="./poker-ai.js"></script>
     <script src="./poker-table.js"></script>
     <script src="./game.js"></script>
+    <script src="./poker-net.js"></script>
   </body>
 </html>
