@@ -110,6 +110,7 @@
   els.raise.addEventListener("click", () => {
     const mode = els.raise.dataset.mode;
     if (mode === "next") K.startHand();
+    else if (mode === "restart") leaveTable();
     else if (mode === "rescue") K.claimRescue();
     else if (mode === "action" && S.game?.players[S.game.actingIndex]?.human) K.performAction(S.game.players[0], "raise", Number(els.betSlider.value));
   });
@@ -171,6 +172,7 @@
   }));
 
   document.addEventListener("keydown", (event) => {
+    if (event.target.closest?.("input, select, textarea")) return;
     if (!S.game || !S.game.players[S.game.actingIndex]?.human || event.repeat) return;
     const key = event.key.toLowerCase();
     if (key === "f" && !els.fold.disabled) els.fold.click();

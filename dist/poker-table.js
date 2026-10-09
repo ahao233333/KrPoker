@@ -64,7 +64,11 @@
     const game = S.game;
     if (!game) return;
     const hero = game.players[0];
-    if (hero.chips <= 0) { setRescueMode(); return; }
+    if (hero.chips <= 0) {
+      if (game.mode === "tournament") setTournamentBustMode();
+      else setRescueMode();
+      return;
+    }
     if (game.mode === "tournament") {
       K.updateTournamentBlinds();
       // 兜底：即使某一手未经 finishHand，也不会让破产的 AI 重新入座。
@@ -196,7 +200,10 @@
       player.lastAction = player.allIn ? "跟注全下" : "跟注";
       message = `<strong>${player.name}</strong> ${player.allIn ? "跟注全下" : "跟注"} ${formatChips(paid)}`;
     } else if (type === "raise") {
-      const desired = clamp(Math.round(target), game.currentBet + 1, player.bet + player.chips);
+      // 非全下加注必须满足最小加注额；全下允许不足额，由 fullRaise 分支处理行动重开。
+      const maxTarget = player.bet + player.chips;
+      const minTarget = Math.min(maxTarget, game.currentBet + game.minRaise);
+      const desired = clamp(Math.round(target), minTarget, maxTarget);
       const paid = desired - player.bet;
       player.chips -= paid; player.bet = desired; player.totalInvested += paid;
       if (!player.chips) player.allIn = true;
@@ -328,13 +335,15 @@
     if (game.mode === "tournament") K.eliminateBustedPlayers();
     K.render();
     const hero = game.players[0];
-    if (hero.chips <= 0) setRescueMode();
-    else if (game.tournamentWon) {
+    if (hero.chips <= 0) {
+      if (game.mode === "tournament") setTournamentBustMode();
+      else setRescueMode();
+    } else if (game.tournamentWon) {
       els.turnLabel.textContent = "🏆 锦标赛冠军";
       els.handHint.textContent = `最终筹码 ${formatChips(hero.chips)}`;
       els.raise.disabled = false;
       els.raise.textContent = "再来一场";
-      els.raise.dataset.mode = "next";
+      els.raise.dataset.mode = "restart";
     } else {
       els.turnLabel.textContent = "本手已结束";
       els.handHint.textContent = `持有 ${formatChips(hero.chips)} 筹码`;
@@ -354,9 +363,22 @@
     K.showToast("你可以免费领取 2,000 救济筹码");
   }
 
+  // 锦标赛没有救济：破产即按剩余人数结算名次并结束比赛。
+  function setTournamentBustMode() {
+    const game = S.game;
+    disableActions();
+    const placement = game.players.filter((p) => !p.eliminated && p.chips > 0).length + 1;
+    addLog(`<strong>你</strong> 被淘汰（第 ${placement} 名）`, "system");
+    els.turnLabel.textContent = `锦标赛结束 · 第 ${placement} 名`;
+    els.handHint.textContent = "你已被淘汰";
+    els.raise.disabled = false;
+    els.raise.textContent = "再来一场";
+    els.raise.dataset.mode = "restart";
+  }
+
   function claimRescue() {
     const game = S.game;
-    if (!game || game.players[0].chips > 0) return;
+    if (!game || game.mode === "tournament" || game.players[0].chips > 0) return;
     game.players[0].chips = 2000;
     addLog("<strong>你</strong> 从系统领取了 2,000 救济筹码", "system");
     K.showToast("已领取 2,000 筹码");

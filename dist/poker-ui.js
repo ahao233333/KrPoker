@@ -104,11 +104,16 @@
     S.toastTimer = setTimeout(() => els.toast.classList.remove("show"), 2200);
   }
 
+  // 复用单个 AudioContext：浏览器限制并发实例数，每次新建会在长时间游戏后静默失效。
+  let audioContext = null;
+
   function tone(frequency) {
     if (!S.soundEnabled) return;
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const context = new AudioContext();
+      audioContext = audioContext || new AudioContext();
+      if (audioContext.state === "suspended") audioContext.resume();
+      const context = audioContext;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       oscillator.frequency.value = frequency;
